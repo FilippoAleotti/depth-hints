@@ -51,6 +51,7 @@ class MonoDataset(data.Dataset):
                  frame_idxs,
                  num_scales,
                  use_depth_hints,
+                 disp_to_depth,
                  depth_hint_path=None,
                  is_train=False,
                  img_ext='.jpg'):
@@ -222,6 +223,10 @@ class MonoDataset(data.Dataset):
 
                 try:
                     depth = np.load(depth_folder)[0]
+                    if self.disp_to_depth:
+                        # NOTE: if here, it means that you are loading disparities
+                        # so, you have to turn disparities into depths
+                        depth = self.K[0, 0, 0] * 0.1 / (depth + 1e-7) * (depth > 0).float()
                 except FileNotFoundError:
                     raise FileNotFoundError("Warning - cannot find depth hint for {} {} {}! "
                                             "Either specify the correct path in option "

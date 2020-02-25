@@ -24,7 +24,7 @@ class MonodepthOptions:
         self.parser.add_argument("--log_dir",
                                  type=str,
                                  help="log directory",
-                                 default=os.path.join(os.path.expanduser("~"), "tmp"))
+                                 default="logs"))
 
         # TRAINING options
         self.parser.add_argument("--model_name",
@@ -34,8 +34,8 @@ class MonodepthOptions:
         self.parser.add_argument("--split",
                                  type=str,
                                  help="which training split to use",
-                                 choices=["eigen_zhou", "eigen_full", "odom", "benchmark"],
-                                 default="eigen_zhou")
+                                 choices=["eigen_zhou", "eigen_full", "odom", "benchmark, kitti"],
+                                 default="kitti")
         self.parser.add_argument("--num_layers",
                                  type=int,
                                  help="number of resnet layers",
@@ -90,6 +90,8 @@ class MonodepthOptions:
                                  help="path to load precomputed depth hints from. If not set will"
                                       "be assumed to be data_path/depth_hints",
                                  type=str)
+        self.parse_args.add_argument("--disp_to_depth", help="turn disparities into depth values ",
+                                 action="store_true")
 
         # OPTIMIZATION options
         self.parser.add_argument("--batch_size",
