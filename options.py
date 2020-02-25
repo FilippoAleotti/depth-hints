@@ -90,8 +90,6 @@ class MonodepthOptions:
                                  help="path to load precomputed depth hints from. If not set will"
                                       "be assumed to be data_path/depth_hints",
                                  type=str)
-        self.parse_args.add_argument("--disp_to_depth", help="turn disparities into depth values ",
-                                 action="store_true")
 
         # OPTIMIZATION options
         self.parser.add_argument("--batch_size",

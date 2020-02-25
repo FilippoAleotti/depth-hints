@@ -125,7 +125,7 @@ class DepthHintDataset:
     def __len__(self):
         return len(self.filenames)
 
-    def compute_depths(self, base_image, lookup_image, reverse=False):
+    def compute_depths(self, base_image, lookup_image, reverse=False, load=False):
         """ For a given stereo pair, compute multiple depth maps using stereo matching
         (OpenCV Semi-Global Block Matching). Raw pixel disparities are converted to depth using
         focal length and baseline.
@@ -152,6 +152,25 @@ class DepthHintDataset:
 
         return depths
 
+    def load_and_scale(self, disp_proxy):
+        disps = []
+        for i,_ in enumerate(self.stereo_matchers):
+            disp = cv2.imread(disp_proxy,-1) / 256.
+            h = disp.shape[0]
+            w = disp.shape[1]
+            ratio = self.w/w
+            disp = cv2.resize(disp, (self.width, self.height)) * ratio
+            if reverse:
+                disp = disp[:, ::-1]
+            disps.append(disp)
+        disps = np.stack(disps)
+        disps = torch.from_numpy(disps).float()
+
+        # convert disp to depth ignoring missing pixels
+        depths = self.K[0, 0, 0] * self.baseline / (disps + 1e-7) * (disps > 0).float()
+        
+        return depths
+    
     def __getitem__(self, index):
         """ For a given image, get multiple depth maps, intrinsics, extrinsics and images. """
         inputs = {}
@@ -182,8 +201,11 @@ class DepthHintDataset:
 
         base_image = np.array(self.resizer(base_image))
         lookup_image = np.array(self.resizer(lookup_image))
-
-        depths = self.compute_depths(base_image, lookup_image, reverse=side == 'image_03')
+        if args.compute:
+            depths = self.compute_depths(base_image, lookup_image, reverse=side == 'image_03')
+        else:
+            proxy = os.path.join(self.data_path, sequence, side, 'data/{}.jpg'.format(str(frame).zfill(10)))
+            depths = self.load_and_scale(proxy)
 
         # convert to tensors and reshape into batch
         base_image = torch.from_numpy(base_image).permute(2, 0, 1).float().unsqueeze(0)\
@@ -208,7 +230,11 @@ def run(opt):
      """
 
     print('Computing depth hints...')
-
+    if args.compute:
+        print("computing using sgm")
+    else:
+        print("compute using our proxies")
+        print("make sure to set datapath to our proxy path")
     if opt.save_path is None:
         opt.save_path = os.path.join(opt.data_path, 'depth_hints')
     print('Saving depth hints to {}'.format(opt.save_path))
@@ -273,7 +299,7 @@ def get_opts():
                         help='path to textfile containing list of images. Each line is expected to '
                              'be of the form "sequence_name frame_number side"',
                         type=str,
-                        default='splits/eigen_full/all_files.txt')
+                        default='splits/kitti/train_files.txt')
     parser.add_argument('--save_path',
                         help='path to save resulting depth hints to. If not set will save to '
                              'datapath/depth_hints',
@@ -288,6 +314,9 @@ def get_opts():
                         type=int)
     parser.add_argument('--overwrite_saved_depths',
                         help='if set, will overwrite any existing depth hints rather than skipping',
+                        action='store_true')
+    parser.add_argument('--compute',
+                        help='if set, compute proxy using sgm, otherwise load proxy',
                         action='store_true')
 
     return parser.parse_args()
