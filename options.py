@@ -24,7 +24,7 @@ class MonodepthOptions:
         self.parser.add_argument("--log_dir",
                                  type=str,
                                  help="log directory",
-                                 default="logs"))
+                                 default="logs")
 
         # TRAINING options
         self.parser.add_argument("--model_name",
@@ -34,7 +34,7 @@ class MonodepthOptions:
         self.parser.add_argument("--split",
                                  type=str,
                                  help="which training split to use",
-                                 choices=["eigen_zhou", "eigen_full", "odom", "benchmark, kitti"],
+                                 choices=["eigen_zhou", "eigen_full", "odom", "benchmark", "kitti"],
                                  default="kitti")
         self.parser.add_argument("--num_layers",
                                  type=int,

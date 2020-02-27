@@ -100,7 +100,7 @@ class MonoDataset(data.Dataset):
             self.resize[i] = transforms.Resize((self.height // s, self.width // s),
                                                interpolation=self.interp)
 
-        self.load_depth = self.check_depth()
+        #self.load_depth = self.check_depth()
 
     def preprocess(self, inputs, color_aug):
         """Resize colour images to the required scales and augment if required
@@ -159,11 +159,11 @@ class MonoDataset(data.Dataset):
 
         line = self.filenames[index].split()
         folder = line[0]
-
-        if len(line) == 3:
-            frame_index = int(line[1])
-        else:
-            frame_index = 0
+        
+        #if len(line) == 3:
+        frame_index = int(line[1])
+        #else:
+        #    frame_index = 0
 
         if len(line) == 3:
             side = line[2]
@@ -201,10 +201,10 @@ class MonoDataset(data.Dataset):
             del inputs[("color", i, -1)]
             del inputs[("color_aug", i, -1)]
 
-        if self.load_depth:
-            depth_gt = self.get_depth(folder, frame_index, side, do_flip)
-            inputs["depth_gt"] = np.expand_dims(depth_gt, 0)
-            inputs["depth_gt"] = torch.from_numpy(inputs["depth_gt"].astype(np.float32))
+        #if self.load_depth:
+        #    depth_gt = self.get_depth(folder, frame_index, side, do_flip)
+        #    inputs["depth_gt"] = np.expand_dims(depth_gt, 0)
+        #    inputs["depth_gt"] = torch.from_numpy(inputs["depth_gt"].astype(np.float32))
 
         if "s" in self.frame_idxs:
             stereo_T = np.eye(4, dtype=np.float32)
@@ -219,7 +219,6 @@ class MonoDataset(data.Dataset):
                 side_folder = 'image_02' if side == 'l' else 'image_03'
                 depth_folder = os.path.join(self.depth_hint_path, folder, side_folder,
                                             str(frame_index).zfill(10) + '.npy')
-
                 try:
                     depth = np.load(depth_folder)[0]
                 except FileNotFoundError:

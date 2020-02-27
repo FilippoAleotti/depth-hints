@@ -124,7 +124,7 @@ class Trainer:
         fpath = os.path.join(os.path.dirname(__file__), "splits", self.opt.split, "{}_files.txt")
 
         train_filenames = readlines(fpath.format("train"))
-        val_filenames = readlines(fpath.format("val"))
+        val_filenames = [] #readlines(fpath.format("val"))
         img_ext = '.png' if self.opt.png else '.jpg'
 
         num_train_samples = len(train_filenames)
@@ -137,14 +137,14 @@ class Trainer:
         self.train_loader = DataLoader(
             train_dataset, self.opt.batch_size, True,
             num_workers=self.opt.num_workers, pin_memory=True, drop_last=True)
-        val_dataset = self.dataset(
-            self.opt.data_path, val_filenames, self.opt.height, self.opt.width,
-            self.opt.frame_ids, 4, self.opt.use_depth_hints, self.opt.depth_hint_path,
-            is_train=False, img_ext=img_ext)
-        self.val_loader = DataLoader(
-            val_dataset, self.opt.batch_size, True,
-            num_workers=self.opt.num_workers, pin_memory=True, drop_last=True)
-        self.val_iter = iter(self.val_loader)
+        #val_dataset = self.dataset(
+        #    self.opt.data_path, val_filenames, self.opt.height, self.opt.width,
+        #    self.opt.frame_ids, 4, self.opt.use_depth_hints, self.opt.depth_hint_path,
+        #    is_train=False, img_ext=img_ext)
+        #self.val_loader = DataLoader(
+        #    val_dataset, self.opt.batch_size, True,
+        #    num_workers=self.opt.num_workers, pin_memory=True, drop_last=True)
+        #self.val_iter = iter(self.val_loader)
 
         self.writers = {}
         for mode in ["train", "val"]:
@@ -171,8 +171,7 @@ class Trainer:
 
         print("Using split:\n  ", self.opt.split)
         print("There are {:d} training items and {:d} validation items\n".format(
-            len(train_dataset), len(val_dataset)))
-
+            len(train_dataset), 0))
         self.save_opts()
 
     def set_train(self):
@@ -229,7 +228,7 @@ class Trainer:
                     self.compute_depth_losses(inputs, outputs, losses)
 
                 self.log("train", inputs, outputs, losses)
-                self.val()
+                #self.val()
 
             self.step += 1
 
@@ -672,7 +671,7 @@ class Trainer:
                 elif not self.opt.disable_automasking:
                     writer.add_image(
                         "automask_{}/{}".format(s, j),
-                        outputs["identity_selection/{}".format(s)][j][None, ...], self.step)
+                        outputs["identity_selection/{}".format(s)][j][None, ...].squeeze(0), self.step)
 
                 # depth hint logging
                 if self.opt.use_depth_hints:
@@ -684,7 +683,7 @@ class Trainer:
 
                         writer.add_image(
                             "depth_hint_pixels_{}/{}".format(s, j),
-                            outputs["depth_hint_pixels/{}".format(s)][j][None, ...], self.step)
+                            outputs["depth_hint_pixels/{}".format(s)][j][None, ...].squeeze(0), self.step)
 
     def save_opts(self):
         """Save options to disk so we know what we ran this experiment with

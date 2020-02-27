@@ -88,12 +88,14 @@ class DepthHintDataset:
                  filenames,
                  height, width,
                  save_path,
-                 overwrite):
+                 overwrite,
+                 compute):
 
         self.data_path = data_path
         self.filenames = filenames
         self.save_path = save_path
         self.overwrite = overwrite
+        self.compute = compute
 
         self.height, self.width = height, width
 
@@ -152,14 +154,14 @@ class DepthHintDataset:
 
         return depths
 
-    def load_and_scale(self, disp_proxy):
+    def load_and_scale(self, disp_proxy, reverse):
         disps = []
         for i,_ in enumerate(self.stereo_matchers):
             disp = cv2.imread(disp_proxy,-1) / 256.
             h = disp.shape[0]
             w = disp.shape[1]
-            ratio = self.w/w
-            disp = cv2.resize(disp, (self.width, self.height)) * ratio
+            ratio = self.width/w
+            disp = cv2.resize(disp, (self.width, self.height), interpolation=cv2.INTER_NEAREST) * ratio
             if reverse:
                 disp = disp[:, ::-1]
             disps.append(disp)
@@ -195,17 +197,17 @@ class DepthHintDataset:
         T[0, 0, 3] = baseline_sign * self.baseline
 
         base_image = pil_loader(os.path.join(self.data_path, sequence, side,
-                                       'data/{}.jpg'.format(str(frame).zfill(10))))
+                                       'data/{}.png'.format(str(frame).zfill(10))))
         lookup_image = pil_loader(os.path.join(self.data_path, sequence, otherside,
-                                       'data/{}.jpg'.format(str(frame).zfill(10))))
+                                       'data/{}.png'.format(str(frame).zfill(10))))
 
         base_image = np.array(self.resizer(base_image))
         lookup_image = np.array(self.resizer(lookup_image))
-        if args.compute:
+        if self.compute:
             depths = self.compute_depths(base_image, lookup_image, reverse=side == 'image_03')
         else:
-            proxy = os.path.join(self.data_path, sequence, side, 'data/{}.jpg'.format(str(frame).zfill(10)))
-            depths = self.load_and_scale(proxy)
+            proxy = os.path.join(self.data_path, sequence, side, 'data/{}.png'.format(str(frame).zfill(10)))
+            depths = self.load_and_scale(proxy, reverse=side == 'image_03')
 
         # convert to tensors and reshape into batch
         base_image = torch.from_numpy(base_image).permute(2, 0, 1).float().unsqueeze(0)\
@@ -230,7 +232,7 @@ def run(opt):
      """
 
     print('Computing depth hints...')
-    if args.compute:
+    if opt.compute:
         print("computing using sgm")
     else:
         print("compute using our proxies")
@@ -247,7 +249,7 @@ def run(opt):
     # batch size hardcoded to 1 as each item will contain multiple depth maps for a single image
     filenames = readlines(opt.filenames)
     dataset = DepthHintDataset(opt.data_path, filenames, opt.height, opt.width, opt.save_path,
-                               opt.overwrite_saved_depths)
+                               opt.overwrite_saved_depths, opt.compute)
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False, drop_last=False, num_workers=12)
 
     time_before = time.time()
