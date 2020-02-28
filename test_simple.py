@@ -31,6 +31,8 @@ def parse_args():
                         help='path to a test image or folder of images', required=True)
     parser.add_argument('--model_path', type=str,
                         help='path to a pretrained model to use', required=True)
+    parser.add_argument('--dest', type=str,
+                        help='where save outputs', required=True)
     parser.add_argument('--num_layers', help='number of resnet layers in the model',
                         type=int, choices=[18, 50])
     parser.add_argument('--ext', type=str,
@@ -89,7 +91,7 @@ def test_simple(args):
     elif os.path.isdir(args.image_path):
         # Searching folder for images
         paths = glob.glob(os.path.join(args.image_path, '*.{}'.format(args.ext)))
-        output_directory = args.image_path
+        output_directory = args.dest #args.image_path
     else:
         raise Exception("Can not find args.image_path: {}".format(args.image_path))
 
